@@ -70,6 +70,32 @@ if(DEFINED NO_OS_TOOLCHAIN_PATH AND NOT CMAKE_TOOLCHAIN_FILE)
     set(CMAKE_TOOLCHAIN_FILE "${CMAKE_SOURCE_DIR}/${NO_OS_TOOLCHAIN_PATH}")
 endif()
 
+# Fail early with an actionable message if no platform was selected. This is
+# what happens when CMake is invoked directly (e.g. `cmake ..`) instead of
+# through a board preset: PLATFORM is empty, so the toolchain path collapses to
+# "drivers/platform//toolchain.cmake" and the error is cryptic.
+if(NOT DEFINED PLATFORM OR "${PLATFORM}" STREQUAL "")
+    message(FATAL_ERROR
+        "No PLATFORM selected.\n"
+        "Configure with a board preset, not a bare 'cmake ..'. For example:\n"
+        "    cmake -B build --preset ad9081_zcu102 -DPROJECT_NAME=iio_demo\n\n"
+        "List the available board presets with:\n"
+        "    cmake --list-presets\n\n"
+        "The preset sets PLATFORM, BOARD, the toolchain file and the board "
+        "defconfig.")
+endif()
+
+# Fail clearly if the selected platform has no CMake toolchain file (wrong
+# platform name, or a platform not yet migrated to the CMake build).
+if(DEFINED CMAKE_TOOLCHAIN_FILE AND NOT EXISTS "${CMAKE_TOOLCHAIN_FILE}")
+    message(FATAL_ERROR
+        "Toolchain file for platform '${PLATFORM}' not found:\n"
+        "    ${CMAKE_TOOLCHAIN_FILE}\n"
+        "Either the platform name is wrong or it has not been migrated to the "
+        "CMake build yet (platforms with a toolchain.cmake: maxim, stm32, "
+        "xilinx).")
+endif()
+
 # Board compatibility checking
 include(BoardCompatibility)
 
@@ -126,11 +152,16 @@ endif()
 
 if(NOT EXISTS "${VENV_PYTHON_EXE}")
   message(STATUS "Creating Python virtual environment in ${VENV_DIR}")
-  execute_process(COMMAND ${Python3_EXECUTABLE} -m venv ${VENV_DIR})
+  # Strip any PYTHONPATH/PYTHONHOME inherited from the environment (e.g. a
+  # sourced Vitis settings64.sh points these at Vitis's bundled Python, which
+  # otherwise corrupts this venv's interpreter).
+  execute_process(COMMAND ${CMAKE_COMMAND} -E env --unset=PYTHONPATH --unset=PYTHONHOME
+    ${Python3_EXECUTABLE} -m venv ${VENV_DIR})
 
   set(REQS_FILE "${NO_OS_DIR}/tools/scripts/requirements.txt")
   message(STATUS "Installing Python dependencies from ${REQS_FILE}")
-  execute_process(COMMAND ${VENV_PYTHON_EXE} -m pip install -r ${REQS_FILE})
+  execute_process(COMMAND ${CMAKE_COMMAND} -E env --unset=PYTHONPATH --unset=PYTHONHOME
+    ${VENV_PYTHON_EXE} -m pip install -r ${REQS_FILE})
 endif()
 
 if(NOT ${NATIVE_BUILD})
@@ -201,6 +232,8 @@ endif()
 if(NOT EXISTS "${CONFIG_FILE}")
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E env
+    --unset=PYTHONPATH
+    --unset=PYTHONHOME
       KCONFIG_CONFIG=${CONFIG_FILE}
       srctree=${CMAKE_CURRENT_SOURCE_DIR}
       ${VENV_PYTHON_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_config.py
@@ -213,6 +246,8 @@ if(NOT EXISTS "${CONFIG_FILE}")
 else()
   execute_process(
     COMMAND ${CMAKE_COMMAND} -E env
+    --unset=PYTHONPATH
+    --unset=PYTHONHOME
       KCONFIG_CONFIG=${CONFIG_FILE}
       srctree=${CMAKE_CURRENT_SOURCE_DIR}
       ${VENV_PYTHON_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_config.py
@@ -226,6 +261,8 @@ add_custom_command(
   OUTPUT ${KCONFIG_VARS_FILE} ${CONFIG_HEADER_FILE}
 
   COMMAND ${CMAKE_COMMAND} -E env
+    --unset=PYTHONPATH
+    --unset=PYTHONHOME
     srctree=${CMAKE_CURRENT_SOURCE_DIR}
     KCONFIG_CONFIG=${CONFIG_FILE}
     ${VENV_PYTHON_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_config.py
@@ -255,10 +292,14 @@ add_custom_target(KconfigVars ALL
 add_custom_target(
   menuconfig
   COMMAND ${CMAKE_COMMAND} -E env
+    --unset=PYTHONPATH
+    --unset=PYTHONHOME
     KCONFIG_CONFIG=${CONFIG_FILE}
     srctree=${CMAKE_CURRENT_SOURCE_DIR}
     ${VENV_PYTHON_EXE} -m menuconfig
   COMMAND ${CMAKE_COMMAND} -E env
+    --unset=PYTHONPATH
+    --unset=PYTHONHOME
     srctree=${CMAKE_CURRENT_SOURCE_DIR}
     ${VENV_PYTHON_EXE} ${CMAKE_CURRENT_SOURCE_DIR}/generate_config.py
     ${GENERATE_CONFIG_ARGS}

@@ -1,0 +1,21 @@
+menu "IIO Demo Configuration"
+
+config IIO_DEMO_IIO_EXAMPLE
+	bool "Enable the basic IIO example"
+	default n
+	help
+	  Build the basic IIO example for the iio_demo project.
+
+config IIO_DEMO_IIO_TIMER_TRIGGER_EXAMPLE
+	bool "Enable the IIO timer trigger example"
+	default n
+	help
+	  Build the IIO timer-trigger example for the iio_demo project.
+
+config IIO_DEMO_IIO_SW_TRIGGER_EXAMPLE
+	bool "Enable the IIO software trigger example"
+	default n
+	help
+	  Build the IIO software-trigger example for the iio_demo project.
+
+endmenu

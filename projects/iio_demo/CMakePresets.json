@@ -68,6 +68,36 @@
                 "TARGET_NUM": "stm32f756",
                 "BOARD_CONFIG_FILE": "stm32f756_nucleo_defconfig"
             }
+        },
+        {
+            "name": "ad9081_zcu102",
+            "displayName": "AD9081 on ZCU102 (Xilinx Zynq UltraScale+)",
+            "description": "AD9081 on Xilinx ZCU102 - auto-detects FetchContent vs local no-OS",
+            "inherits": "default",
+            "cacheVariables": {
+                "BOARD": "ad9081_zcu102",
+                "PLATFORM": "xilinx",
+                "TARGET": "zynqmp",
+                "BOARD_CONFIG_FILE": "ad9081_zcu102_defconfig",
+                "XILINX_ARCH": "cortexa53",
+                "XILINX_PROC": "psu_cortexa53_0",
+                "XPS_BOARD": "ZCU102"
+            }
+        },
+        {
+            "name": "ad9361_zcu102",
+            "displayName": "AD9361 on ZCU102 (Xilinx Zynq UltraScale+)",
+            "description": "AD9361 on Xilinx ZCU102 - auto-detects FetchContent vs local no-OS",
+            "inherits": "default",
+            "cacheVariables": {
+                "BOARD": "ad9361_zcu102",
+                "PLATFORM": "xilinx",
+                "TARGET": "zynqmp",
+                "BOARD_CONFIG_FILE": "ad9361_zcu102_defconfig",
+                "XILINX_ARCH": "cortexa53",
+                "XILINX_PROC": "psu_cortexa53_0",
+                "XPS_BOARD": "ZCU102"
+            }
         }
     ],
     "buildPresets": [

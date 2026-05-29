@@ -97,9 +97,12 @@ function(add_openocd_flash_target TARGET_NAME)
 endfunction()
 
 function(add_flash_target TARGET_NAME)
-	if(${PROBE} STREQUAL "jlink")
+	# Quote PROBE so an unset value (e.g. on platforms like xilinx that flash
+	# via their own tooling rather than jlink/openocd) yields a clean no-op
+	# instead of a malformed if() error.
+	if("${PROBE}" STREQUAL "jlink")
 		add_jlink_flash_target(${TARGET_NAME})
-	elseif(${PROBE} STREQUAL "openocd")
+	elseif("${PROBE}" STREQUAL "openocd")
 		add_openocd_flash_target(${TARGET_NAME})
 	endif()
 endfunction()
