@@ -39,7 +39,11 @@ function(config_xilinx_sdk BUILD_TARGET)
 	find_program(XSCT_EXECUTABLE xsct HINTS "$ENV{XILINX_VITIS}/bin" "$ENV{XILINX_SDK}/bin")
 
 	set(BSP_DIR "${CMAKE_CURRENT_BINARY_DIR}/xilinx_bsp")
-	set(BSP_LIB "${BSP_DIR}/${XILINX_PROC}/lib/libxil.a")
+	# util.tcl generates the BSP under <ws>/bsp/<proc>/ and the standalone app
+	# (with the linker script) under <ws>/app/src/.
+	set(BSP_INC "${BSP_DIR}/bsp/${XILINX_PROC}/include")
+	set(BSP_LIBDIR "${BSP_DIR}/bsp/${XILINX_PROC}/lib")
+	set(BSP_LIB "${BSP_LIBDIR}/libxil.a")
 	set(LSCRIPT "${BSP_DIR}/app/src/lscript.ld")
 	set(XILINX_UTIL_TCL "${NO_OS_DIR}/tools/scripts/platform/xilinx/util.tcl")
 
@@ -71,8 +75,8 @@ function(config_xilinx_sdk BUILD_TARGET)
 	endif()
 
 	# Wire the generated BSP into the build.
-	target_include_directories(no-os PUBLIC "${BSP_DIR}/${XILINX_PROC}/include")
-	target_link_directories(${BUILD_TARGET} PUBLIC "${BSP_DIR}/${XILINX_PROC}/lib")
+	target_include_directories(no-os PUBLIC "${BSP_INC}")
+	target_link_directories(${BUILD_TARGET} PUBLIC "${BSP_LIBDIR}")
 	# Xilinx standalone libraries (see tools/scripts/xilinx.mk).
 	target_link_libraries(${BUILD_TARGET}
 		-Wl,--start-group xil gcc c -Wl,--end-group)

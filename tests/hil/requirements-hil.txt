@@ -1,0 +1,11 @@
+# Hardware-in-the-loop (HIL) test dependencies for no-OS Xilinx targets.
+# Install into a venv:  pip install -r tests/hil/requirements-hil.txt
+pytest>=7
+pyserial
+labgrid
+# ADI labgrid drivers/resources/strategies + the iio_hardware/iio_carrier
+# pytest markers used for board-farm test selection.
+adi-labgrid-plugins @ git+https://github.com/tfcollins/labgrid-plugins.git
+# Phase 2 (IIO over serial) only:
+pytest-libiio
+pyadi-iio

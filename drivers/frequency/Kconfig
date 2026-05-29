@@ -1,0 +1,18 @@
+menuconfig FREQUENCY
+	bool "Frequency / Clock Drivers"
+	default n
+	help
+	  Enable clock-generation and frequency-synthesis device drivers
+	  (PLLs, clock generators, JESD204 clock chips).
+
+if FREQUENCY
+
+config FREQUENCY_AD9528
+	bool "Enable AD9528 clock generator driver"
+	default n
+
+config FREQUENCY_HMC7044
+	bool "Enable HMC7044 clock generator driver"
+	default n
+
+endif # FREQUENCY

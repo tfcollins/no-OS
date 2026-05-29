@@ -1,0 +1,62 @@
+# Hardware-in-the-loop tests for no-OS Xilinx targets (ADRV9009 / ZC706).
+#
+# Runs on a SELF-HOSTED runner that has: Vitis on PATH, the .xsa design, and
+# network access to the labgrid coordinator + board farm. This is separate from
+# the Azure compile/style CI. Triggered manually or on changes to the Xilinx
+# build / adrv9009 project. Requires the runner labels and secrets below.
+name: HIL Xilinx (ADRV9009 / ZC706)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'drivers/platform/xilinx/**'
+      - 'drivers/axi_core/**'
+      - 'drivers/rf-transceiver/talise/**'
+      - 'drivers/frequency/**'
+      - 'jesd204/**'
+      - 'projects/adrv9009/**'
+      - 'board_configs/xilinx/**'
+      - 'cmake/xilinx_platform_sdk.cmake'
+      - 'tests/hil/**'
+
+jobs:
+  hil-adrv9009-zc706:
+    runs-on: [self-hosted, labgrid, xilinx]   # runner must reach the coordinator + board
+    env:
+      XILINX_VITIS: /opt/Xilinx/2025.1/Vitis
+      NOOS_XSA: ${{ secrets.ADRV9009_ZC706_XSA }}     # path to the design on the runner
+      LG_ENV: tests/hil/env/adrv9009_zc706.yaml       # committed/managed on the runner
+      HW_DAUGHTER: adrv9009
+      HW_CARRIER: zc706
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Set up HIL venv
+        run: |
+          python3 -m venv .hilvenv
+          ./.hilvenv/bin/pip install -r tests/hil/requirements-hil.txt
+
+      - name: Discover applicable tests (marker export)
+        run: |
+          ./.hilvenv/bin/pytest tests/hil --collect-only \
+            --hw-ci-export-markers=hil-markers.json
+      # `adi-lg-hw-ci` can intersect hil-markers.json with live coordinator
+      # places here to build a matrix; single-board form shown below.
+
+      - name: Phase 1 - boot/console (non-IIOD)
+        run: |
+          PATH="$XILINX_VITIS/bin:$PATH" \
+          ./.hilvenv/bin/pytest tests/hil --lg-env "$LG_ENV" \
+            -m iio_hardware -k boot_console \
+            --noos-preset adrv9009_zc706 --noos-xsa "$NOOS_XSA"
+
+      - name: Phase 2 - IIO over serial (IIOD)
+        if: ${{ vars.RUN_HIL_PHASE2 == 'true' }}
+        run: |
+          PATH="$XILINX_VITIS/bin:$PATH" \
+          ./.hilvenv/bin/pytest tests/hil --lg-env "$LG_ENV" \
+            -m iio_hardware -k iio_serial \
+            --noos-preset adrv9009_zc706_iiod --noos-xsa "$NOOS_XSA" \
+            --noos-iio-uri "${{ vars.ADRV9009_ZC706_IIO_URI }}"

@@ -1,0 +1,16 @@
+menuconfig RF_TRANSCEIVER
+	bool "RF Transceiver Drivers"
+	default n
+	help
+	  Enable RF transceiver device drivers (e.g. ADRV9009/Talise).
+
+if RF_TRANSCEIVER
+
+config RF_TRANSCEIVER_TALISE
+	bool "Enable Talise (ADRV9009/ADRV9008) API driver"
+	default n
+	help
+	  Enable the Talise transceiver API used by ADRV9009/ADRV9008-x
+	  reference designs.
+
+endif # RF_TRANSCEIVER

@@ -47,8 +47,19 @@ if(CONFIG_TEMPERATURE)
     add_subdirectory(temperature)
 endif()
 
+if(CONFIG_AXI_CORE)
+    add_subdirectory(axi_core)
+endif()
+
+if(CONFIG_FREQUENCY)
+    add_subdirectory(frequency)
+endif()
+
+if(CONFIG_RF_TRANSCEIVER)
+    add_subdirectory(rf-transceiver)
+endif()
+
 # add_subdirectory(accel)
 # add_subdirectory(afe)
 # add_subdirectory(amplifiers)
-# add_subdirectory(axi_core)
 # add_subdirectory(cdc)

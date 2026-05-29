@@ -1,0 +1,46 @@
+menuconfig AXI_CORE
+	bool "AXI Core Drivers"
+	default n
+	help
+	  Enable AXI-based FPGA core drivers (ADC/DAC/DMA cores, JESD204
+	  link layer, transceiver and clock-generation) used by high-speed
+	  converter and RF-transceiver reference designs.
+
+if AXI_CORE
+
+config AXI_ADC_CORE
+	bool "Enable AXI ADC core driver"
+	default n
+
+config AXI_DAC_CORE
+	bool "Enable AXI DAC core driver"
+	default n
+
+config AXI_DMAC
+	bool "Enable AXI DMAC driver"
+	default n
+
+config AXI_JESD204
+	bool "Enable AXI JESD204 link drivers (rx/tx/clk, + transceiver on Xilinx)"
+	select JESD204
+	default n
+	help
+	  Enable the AXI JESD204 RX/TX link drivers and JESD204 clock. On
+	  Xilinx platforms this also builds the GTH/GTY transceiver and
+	  AXI ADXCVR drivers.
+
+config CLK_AXI_CLKGEN
+	bool "Enable AXI clkgen driver (Xilinx)"
+	default n
+
+config IIO_AXI_ADC
+	bool "Enable AXI ADC IIO driver"
+	depends on IIO
+	default n
+
+config IIO_AXI_DAC
+	bool "Enable AXI DAC IIO driver"
+	depends on IIO
+	default n
+
+endif # AXI_CORE

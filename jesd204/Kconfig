@@ -1,0 +1,7 @@
+config JESD204
+	bool "JESD204 framework"
+	default n
+	help
+	  Enable the JESD204B/C link-layer state-machine framework
+	  (jesd204-core.c, jesd204-fsm.c). Required by AXI JESD204 link
+	  drivers and JESD204-based converter/transceiver projects.

@@ -56,6 +56,14 @@ proc _project_config {cmd {arg}} {
 		set arg2 "name"
 	}
 
+	# Only the Makefile build exports these (it compiles the app via the Vitis
+	# IDE project). The CMake build compiles the sources itself and just needs
+	# the generated BSP + linker script, so skip app configuration when the
+	# variables are absent.
+	if {![info exists ::env(EXTRA_INC_PATHS)]} {
+		return
+	}
+
 	set paths [lsort -unique  $::env(EXTRA_INC_PATHS)]
 
 	foreach path $paths {

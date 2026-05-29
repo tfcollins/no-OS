@@ -1,0 +1,39 @@
+# Example labgrid environment for ADRV9009 on ZC706, board-farm / coordinator.
+# Copy to adrv9009_zc706.yaml and fill in the REPLACE_ME values, then:
+#   pytest tests/hil --lg-env tests/hil/env/adrv9009_zc706.yaml -m iio_hardware
+#
+# The Xilinx resources below are typed carriers of paths/cable-id/xsct location;
+# the actual bare-metal JTAG load is done by tests/hil/jtag_loader.py (util.tcl),
+# not by a labgrid driver (the plugin's XilinxJTAGDriver does not run ps7_init
+# for Cortex-A9).
+targets:
+  main:
+    resources:
+      # Reserve the bench by name from the coordinator:
+      RemotePlace:
+        name: adrv9009-zc706-bench
+      # Serial console exported by the farm host (or RawSerialPort on a local runner):
+      NetworkSerialPort:
+        host: REPLACE_ME-exporter-host
+        port: 4001
+      # JTAG load inputs (paths as seen by whoever runs xsct):
+      XilinxDeviceJTAG:
+        jtag_cable_id: ""              # substring match of the hw_server cable name; "" = first
+        host: REPLACE_ME-hwserver-host # -> XSCT_REMOTE_HOST (omit for local JTAG)
+        port: 3121                     # -> XSCT_REMOTE_PORT (xilinx hw_server default)
+      XilinxVivadoTool:
+        xsdb_path: /opt/Xilinx/2025.1/Vitis/bin/xsct
+      # Power control (adi-labgrid-plugins); swap for CyberPowerOutlet if used:
+      VesyncOutlet:
+        outlet_names: "adrv9009-zc706"
+        username: "REPLACE_ME@example.com"
+        password: "REPLACE_ME"
+    drivers:
+      SerialDriver: {}                 # ConsoleProtocol for Phase-1 expect()
+      VesyncPowerDriver: {}            # PowerProtocol (off/on/cycle)
+    options:
+      coordinator_address: "REPLACE_ME-coordinator-host:20408"
+
+# Load the ADI plugin drivers/resources/strategies + pytest markers:
+imports:
+  - adi_lg_plugins
