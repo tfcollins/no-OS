@@ -1,6 +1,10 @@
 """Phase 2 HIL tests: talk to the ADRV9009 IIOD (TINYIIOD over UART) with
 libiio / pyadi-iio.
 
+Requires the Phase-2 extras (kept out of the Phase-1 venv because pytest-libiio
+imports libiio at load):
+    pip install -r tests/hil/requirements-hil.txt -r tests/hil/requirements-hil-iio.txt
+
 Build the IIOD firmware first (CONFIG_IIO over UART):
     pytest tests/hil --lg-env tests/hil/env/adrv9009_zc706.yaml -m iio_hardware \\
            -k iio_serial --noos-preset adrv9009_zc706_iiod \\

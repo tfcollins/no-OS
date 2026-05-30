@@ -1,0 +1,9 @@
+# Phase 2 (IIO over serial) extra dependencies, on top of requirements-hil.txt:
+#   pip install -r tests/hil/requirements-hil.txt -r tests/hil/requirements-hil-iio.txt
+#
+# NOTE: pytest-libiio imports the `iio` python bindings at load time, which dlopen
+# the system libiio. A libiio new enough to provide iio_get_backends_count
+# (libiio >= 0.24) must be installed on the runner, or Phase 1 collection will
+# break too. Keep these out of the Phase 1 venv.
+pytest-libiio
+pyadi-iio

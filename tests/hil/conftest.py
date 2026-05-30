@@ -39,6 +39,15 @@ def pytest_addoption(parser):
                 help="libiio URI for Phase-2 IIO tests, e.g. 'serial:/dev/ttyUSB0,115200'. "
                      "On a board farm the target serial must be reachable from the runner "
                      "(e.g. ser2net/socat); if unset, Phase-2 tests skip.")
+    # JTAG/xsct overrides (lab-specific; otherwise discovered from labgrid resources)
+    g.addoption("--noos-xsct", default=os.environ.get("NOOS_XSCT"),
+                help="Path to xsct (overrides XilinxVivadoTool.xsdb_path)")
+    g.addoption("--noos-jtag-host", default=os.environ.get("NOOS_JTAG_HOST"),
+                help="Xilinx hw_server host for remote JTAG (XSCT_REMOTE_HOST)")
+    g.addoption("--noos-jtag-port", default=os.environ.get("NOOS_JTAG_PORT"),
+                help="Xilinx hw_server port for remote JTAG (XSCT_REMOTE_PORT, default 3121)")
+    g.addoption("--noos-jtag-cable", default=os.environ.get("NOOS_JTAG_CABLE"),
+                help="JTAG cable id substring (util.tcl jtagtarget filter)")
 
 
 def _vitis_env(vitis: str) -> dict:
@@ -94,23 +103,37 @@ def firmware(request, repo_root) -> dict:
 # --- labgrid-backed fixtures (the `target` fixture comes from labgrid's pytest
 #     plugin when --lg-env is given) -------------------------------------------
 
-def _jtag_attrs(target):
-    """Pull optional JTAG/xsct attributes from labgrid resources, with defaults."""
+def _jtag_attrs(target, config=None):
+    """Resolve xsct path + remote hw_server from labgrid resources, with overrides.
+
+    Field names match adi_lg_plugins as of v0.1.0:
+      - XilinxVivadoTool.xsdb_path  -> xsct executable
+      - XilinxDeviceJTAG has NO host/port/cable; the exporter host is inferred
+        from any sibling NetworkResource exposing a `.host` attribute (this is
+        how adi_lg_plugins' XilinxJTAGDriver locates the exporter).
+    We run util.tcl `upload` locally and reach the board's hw_server via
+    XSCT_REMOTE_HOST/PORT (default Xilinx hw_server port 3121). If a lab instead
+    runs xsdb on the exporter over SSH, override host/port to "" and arrange the
+    runner to reach the cable directly, or extend jtag_loader to ssh.
+    """
     attrs = {"xsct": "xsct", "jtag_cable_id": "", "remote_host": None, "remote_port": None}
-    try:
-        from labgrid.resource import NetworkSerialPort  # noqa: F401
-    except Exception:
-        pass
-    # XilinxVivadoTool / XilinxDeviceJTAG are provided by adi-labgrid-plugins;
-    # access defensively since field names may evolve.
     for res in getattr(target, "resources", []):
         cls = type(res).__name__
         if cls == "XilinxVivadoTool":
-            attrs["xsct"] = getattr(res, "xsdb_path", None) or getattr(res, "xsct_path", None) or attrs["xsct"]
-        if cls == "XilinxDeviceJTAG":
-            attrs["jtag_cable_id"] = getattr(res, "jtag_cable_id", "") or attrs["jtag_cable_id"]
-            attrs["remote_host"] = getattr(res, "host", None)
-            attrs["remote_port"] = getattr(res, "port", None)
+            attrs["xsct"] = getattr(res, "xsdb_path", None) or attrs["xsct"]
+        # Exporter host = first resource that carries a network host.
+        host = getattr(res, "host", None)
+        if host and not attrs["remote_host"]:
+            attrs["remote_host"] = host
+            attrs["remote_port"] = getattr(res, "port", None) or 3121
+    # CLI / env overrides win (lab-specific).
+    if config is not None:
+        attrs["xsct"] = config.getoption("--noos-xsct") or attrs["xsct"]
+        if config.getoption("--noos-jtag-host"):
+            attrs["remote_host"] = config.getoption("--noos-jtag-host")
+        if config.getoption("--noos-jtag-port"):
+            attrs["remote_port"] = config.getoption("--noos-jtag-port")
+        attrs["jtag_cable_id"] = config.getoption("--noos-jtag-cable") or attrs["jtag_cable_id"]
     return attrs
 
 
@@ -131,7 +154,7 @@ def console(target):
 @pytest.fixture
 def loaded_firmware(request, firmware, target, power, console):
     """Power-cycle the board and JTAG-load the firmware, ready to read console."""
-    attrs = _jtag_attrs(target)
+    attrs = _jtag_attrs(target, request.config)
     hw_path = firmware["build_dir"] / "hil_hw"
 
     power.cycle()

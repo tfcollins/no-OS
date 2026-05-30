@@ -55,6 +55,7 @@ jobs:
       - name: Phase 2 - IIO over serial (IIOD)
         if: ${{ vars.RUN_HIL_PHASE2 == 'true' }}
         run: |
+          ./.hilvenv/bin/pip install -r tests/hil/requirements-hil-iio.txt
           PATH="$XILINX_VITIS/bin:$PATH" \
           ./.hilvenv/bin/pytest tests/hil --lg-env "$LG_ENV" \
             -m iio_hardware -k iio_serial \
