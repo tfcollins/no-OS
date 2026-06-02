@@ -8,7 +8,7 @@ def test_build_upload_argv_order_and_contents():
         xsct="xsct", ws="/ws", hw_path="/hw", hw_basename="design.xsa",
         elf="/build/app.elf", jtag_cable_id="cable1")
     assert argv[:4] == ["xsct", "-nodisp", str(jtag_loader.UTIL_TCL), "upload"]
-    assert argv[4:7] == ["/hw", "/hw", "design.xsa"]   # ws hw_path hw_basename
+    assert argv[4:7] == ["/ws", "/hw", "design.xsa"]   # ws hw_path hw_basename
     assert "/build/app.elf" in argv
     assert argv[-1] == "cable1"
 

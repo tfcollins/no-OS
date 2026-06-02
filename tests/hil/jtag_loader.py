@@ -59,7 +59,7 @@ def build_upload_argv(*, xsct, ws, hw_path, hw_basename, elf,
     """
     return [
         xsct, "-nodisp", str(UTIL_TCL), "upload",
-        str(hw_path), str(hw_path), hw_basename,
+        str(ws), str(hw_path), hw_basename,
         str(elf), str(target_cpu), template, str(fsbl), jtag_cable_id,
     ]
 
