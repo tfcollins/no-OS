@@ -58,7 +58,7 @@ tests/hil/
     __init__.py          # Loader protocol + registry + selection from env/CLI
     jtag.py              # Xilinx JTAG .elf load (wraps existing jtag_loader.py / util.tcl)
     sdmux.py             # Xilinx SD-Mux BOOT.BIN boot (labgrid-plugins SD-Mux + boot strategy)
-  reporting.py           # pytest hooks: per-test metadata + console transcript -> JUnit/HTML
+  reporting.py           # pytest hooks: per-test + run metadata -> JUnit/HTML
   env/                   # labgrid env YAMLs (local-bench + coordinator examples, per board)
   tests/
     test_boot_console.py # Phase 1 "C" tests: assert on firmware printf over serial
@@ -104,15 +104,19 @@ Fixtures `power` / `console` / `target` are identical across both. Every env imp
 
 - **Phase 1 — C/firmware tests** (`test_boot_console.py`): the test logic *is* the C firmware;
   pytest observes the serial console — `expect()` ordered boot milestones, fail-fast on a list of
-  error markers, capture boot timing.
+  error markers (the failing assertion carries the console buffer into the report).
 - **Phase 2 — Python tests** (`test_iio_serial.py`): pyadi-iio / libiio attach to the running
   IIOD build and run functional checks (context devices present, sample rate, attribute R/W,
   optional data capture). Skips (does not fail) when the transport URI is unavailable.
 
-**Reporting** (`reporting.py`). pytest hooks attach `project · platform · build · hardware ·
-carrier · loader · elf` metadata to every test in both JUnit XML and pytest-html; the serial
-console transcript is attached to the HTML report on failure; JUnit XML is emitted for native
-GitHub/Azure rendering. No dashboard/REST integration in this iteration.
+**Reporting** (`reporting.py`). pytest hooks attach run-level metadata (`project · platform ·
+build · loader · artifacts`) to the pytest-html header and per-test metadata (`noos_project ·
+noos_platform · noos_build · noos_loader · iio_hardware · iio_carrier`) to the JUnit XML
+`<properties>` via `record_property` (emitted under the `xunit1` family for schema-clean
+rendering). On a Phase-1 failure the console buffer is surfaced through the failing assertion's
+message, which both JUnit and pytest-html render. No dashboard/REST integration in this iteration.
+*Future enhancement (not built):* a `pytest_runtest_makereport` hook to attach a full captured
+console transcript and per-milestone boot timing to the HTML report.
 
 ### Data flow
 
@@ -126,7 +130,7 @@ loaded_firmware: power-cycle ──► Loader.load()   [JTAG .elf  |  SD-Mux BOO
         ├─ Phase 1 (C):      console.expect(milestones, error_markers)
         └─ Phase 2 (Python): pyadi-iio / libiio  ──► functional asserts
         │
-pytest hooks ──► JUnit XML  +  pytest-html  (metadata + console transcript + boot timing)
+pytest hooks ──► JUnit XML  +  pytest-html  (run + per-test metadata; console buffer in fail msg)
 ```
 
 ## Configuration surface
@@ -150,7 +154,7 @@ CLI options (with `NOOS_*` env equivalents), extending the prototype's `--noos-*
 | Build failure | Session fails; build log captured/attached. |
 | No env / no board / no labgrid | Tests **skip** (collection still works on any dev machine). |
 | Load failure (JTAG rc≠0, SD/boot timeout) | Fail fast; captured loader output attached. |
-| Error marker on console | Fail immediately; serial transcript attached. |
+| Error marker on console | Fail immediately; console buffer included in the failure message. |
 | Phase-2 transport unavailable | **Skip**, not fail. |
 
 ## Testing the harness itself (no hardware)
@@ -168,7 +172,8 @@ relevant driver/project paths, on a self-hosted runner (`[self-hosted, labgrid, 
 
 1. Set up HIL venv (`requirements-hil.txt`, optionally `requirements-hil-iio.txt`).
 2. Build or fetch artifacts (`build_projects.py` or `--noos-artifacts`).
-3. Marker export → matrix (`--hw-ci-export-markers`, intersect with live coordinator places).
+3. *(Future)* Marker export → matrix (`--hw-ci-export-markers`, intersect with live coordinator
+   places). The initial `hil.yml` runs the suite directly with `-m iio_hardware` for a single board.
 4. Phase 1 (boot/console).
 5. Phase 2 (IIO), conditional.
 6. Upload JUnit XML + pytest-html; publish test summary.
