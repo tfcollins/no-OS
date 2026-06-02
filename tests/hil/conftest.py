@@ -74,3 +74,73 @@ def _record_hil_metadata(request, record_property):
         record_property("iio_hardware", hw)
     for carrier in reporting.marker_values(request.node, "iio_carrier"):
         record_property("iio_carrier", carrier)
+
+
+@pytest.fixture(scope="session")
+def firmware(request, tmp_path_factory):
+    """Produce-or-locate boot artifacts. Skips the session if none are available."""
+    import builder
+
+    artifacts_opt = request.config.getoption("--noos-artifacts")
+    if artifacts_opt:
+        root = builder.unpack_if_zip(
+            artifacts_opt, tmp_path_factory.mktemp("noos-artifacts"))
+        arts = builder.discover_artifacts(root)
+    else:
+        builds_dir = Path(request.config.getoption("--noos-builds-dir"))
+        if not builds_dir.is_absolute():
+            builds_dir = REPO_ROOT / builds_dir
+        try:
+            builder.build_via_build_projects(
+                project=request.config.getoption("--noos-project"),
+                platform=request.config.getoption("--noos-platform"),
+                build_name=request.config.getoption("--noos-build"),
+                hardware=request.config.getoption("--noos-hardware"),
+                builds_dir=builds_dir,
+                export_dir=builds_dir / "export",
+                log_dir=builds_dir / "logs",
+                python=request.config.getoption("--noos-python"),
+            )
+        except subprocess.CalledProcessError as exc:
+            pytest.fail(f"build_projects.py failed: {exc}")
+        arts = builder.discover_artifacts(builds_dir)
+
+    if arts.elf is None and arts.boot_bin is None:
+        pytest.skip("no boot artifacts (.elf / BOOT.BIN) available; cannot run on hardware")
+    return arts
+
+
+def _loader_options(config) -> dict:
+    return {
+        "xsa": config.getoption("--noos-xsa"),
+        "xsct": config.getoption("--noos-xsct"),
+        "jtag_host": config.getoption("--noos-jtag-host"),
+        "jtag_port": config.getoption("--noos-jtag-port"),
+        "jtag_cable": config.getoption("--noos-jtag-cable"),
+    }
+
+
+@pytest.fixture
+def power(target):
+    """labgrid PowerProtocol driver (off()/on()/cycle())."""
+    return target.get_driver("PowerProtocol")
+
+
+@pytest.fixture
+def console(target):
+    """labgrid ConsoleProtocol driver, with pexpect-style .expect()."""
+    drv = target.get_driver("ConsoleProtocol")
+    target.activate(drv)
+    return drv
+
+
+@pytest.fixture
+def loaded_firmware(request, firmware, target, power, console):
+    """Power-cycle the board and load the firmware via the selected loader."""
+    from loaders import select_loader
+
+    loader = select_loader(request.config.getoption("--noos-loader"), target)
+    if loader.name == "jtag":
+        power.cycle()
+    loader.load(firmware, target, _loader_options(request.config))
+    return {"console": console, "artifacts": firmware, "loader": loader.name}
