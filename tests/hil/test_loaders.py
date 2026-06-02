@@ -91,3 +91,27 @@ def test_jtag_loader_fails_on_nonzero_rc(tmp_path, monkeypatch):
     monkeypatch.setattr(jtag_mod.jtag_loader, "upload", lambda **k: _Fail())
     with pytest.raises(pytest.fail.Exception):
         jtag_mod.JTAGLoader().load(arts, _make_target(), {"xsa": str(tmp_path / "design.xsa")})
+
+
+def test_sdmux_loader_skips_without_driver(tmp_path):
+    import builder
+    from loaders.sdmux import SDMuxLoader
+    (tmp_path / "BOOT.BIN").write_bytes(b"boot")
+    arts = builder.discover_artifacts(tmp_path)
+
+    class _NoDriverTarget:
+        resources = []
+
+        def get_driver(self, name):
+            raise Exception("no such driver")
+
+    with pytest.raises(pytest.skip.Exception):
+        SDMuxLoader().load(arts, _NoDriverTarget(), {})
+
+
+def test_sdmux_loader_requires_boot_bin(tmp_path):
+    import builder
+    from loaders.sdmux import SDMuxLoader
+    arts = builder.discover_artifacts(tmp_path)  # no BOOT.BIN
+    with pytest.raises(FileNotFoundError):
+        SDMuxLoader().load(arts, _make_target(), {})
