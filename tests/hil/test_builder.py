@@ -34,3 +34,9 @@ def test_unpack_if_zip(tmp_path):
 
 def test_unpack_if_zip_passthrough_for_dir(tmp_path):
     assert builder.unpack_if_zip(tmp_path, tmp_path / "unused") == tmp_path
+
+
+def test_require_unknown_field_raises_filenotfound(tmp_path):
+    arts = builder.discover_artifacts(tmp_path)
+    with pytest.raises(FileNotFoundError):
+        arts.require("not_a_field")

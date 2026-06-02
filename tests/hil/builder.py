@@ -38,7 +38,7 @@ class Artifacts:
     xsa: Path | None = None
 
     def require(self, field: str) -> Path:
-        value = getattr(self, field)
+        value = getattr(self, field, None)
         if value is None:
             raise FileNotFoundError(f"no {field} artifact found under {self.build_dir}")
         return value
@@ -56,7 +56,11 @@ def discover_artifacts(root) -> Artifacts:
 
 
 def unpack_if_zip(path, dest) -> Path:
-    """If path is a .zip, extract into dest and return dest; else return path."""
+    """If path is a .zip, extract into dest and return dest; else return path.
+
+    Assumes a trusted archive (team-controlled CI artifacts); does not sanitize
+    member paths beyond zipfile's built-in traversal protection.
+    """
     path = Path(path)
     if path.suffix == ".zip":
         dest = Path(dest)
