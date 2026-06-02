@@ -49,3 +49,29 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def repo_root() -> Path:
     return REPO_ROOT
+
+
+import reporting
+
+
+def pytest_configure(config):
+    # pytest-metadata (bundled with pytest-html) exposes config._metadata; fold
+    # in our run-level metadata so it shows in the HTML report header. No-op when
+    # pytest-html is not installed.
+    md = getattr(config, "_metadata", None)
+    if isinstance(md, dict):
+        md.update(reporting.run_metadata(config))
+
+
+@pytest.fixture(autouse=True)
+def _record_hil_metadata(request, record_property):
+    """Attach per-test metadata to the JUnit XML <properties> for each test."""
+    cfg = request.config
+    record_property("noos_project", cfg.getoption("--noos-project"))
+    record_property("noos_platform", cfg.getoption("--noos-platform"))
+    record_property("noos_build", cfg.getoption("--noos-build"))
+    record_property("noos_loader", cfg.getoption("--noos-loader"))
+    for hw in reporting.marker_values(request.node, "iio_hardware"):
+        record_property("iio_hardware", hw)
+    for carrier in reporting.marker_values(request.node, "iio_carrier"):
+        record_property("iio_carrier", carrier)
