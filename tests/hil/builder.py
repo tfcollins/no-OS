@@ -69,3 +69,25 @@ def unpack_if_zip(path, dest) -> Path:
             z.extractall(dest)
         return dest
     return path
+
+
+def build_via_build_projects(*, project, platform, build_name, builds_dir,
+                             export_dir, log_dir, python=sys.executable,
+                             hardware=None) -> Path:
+    """Run build_projects.py for one named build. Returns the builds_dir Path.
+
+    Raises subprocess.CalledProcessError on build failure (check=True). After
+    this returns, call discover_artifacts(builds_dir) to locate the .elf and
+    (for xilinx) the BOOT.BIN.
+    """
+    builds_dir = Path(builds_dir)
+    argv = [
+        python, str(BUILD_PROJECTS), str(REPO_ROOT),
+        f"-export_dir={export_dir}", f"-log_dir={log_dir}",
+        f"-builds_dir={builds_dir}", f"-project={project}",
+        f"-platform={platform}", f"-build_name={build_name}",
+    ]
+    if hardware:
+        argv.append(f"-hardware={hardware}")
+    subprocess.run(argv, cwd=REPO_ROOT, check=True)
+    return builds_dir

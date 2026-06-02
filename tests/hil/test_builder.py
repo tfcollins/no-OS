@@ -40,3 +40,39 @@ def test_require_unknown_field_raises_filenotfound(tmp_path):
     arts = builder.discover_artifacts(tmp_path)
     with pytest.raises(FileNotFoundError):
         arts.require("not_a_field")
+
+
+def test_build_via_build_projects_argv(tmp_path, monkeypatch):
+    calls = {}
+
+    def fake_run(argv, cwd=None, check=None):
+        calls["argv"] = argv
+        calls["cwd"] = cwd
+        calls["check"] = check
+        return None
+
+    monkeypatch.setattr(builder.subprocess, "run", fake_run)
+    out = builder.build_via_build_projects(
+        project="adrv9009", platform="xilinx", build_name="demo",
+        builds_dir=tmp_path, export_dir=tmp_path / "e", log_dir=tmp_path / "l",
+        python="python3", hardware="adrv9009_zc706")
+    assert out == tmp_path
+    argv = calls["argv"]
+    assert argv[0] == "python3"
+    assert str(builder.BUILD_PROJECTS) in argv
+    assert "-project=adrv9009" in argv
+    assert "-platform=xilinx" in argv
+    assert "-build_name=demo" in argv
+    assert "-hardware=adrv9009_zc706" in argv
+    assert f"-builds_dir={tmp_path}" in argv
+    assert calls["check"] is True
+
+
+def test_build_via_build_projects_omits_empty_hardware(tmp_path, monkeypatch):
+    calls = {}
+    monkeypatch.setattr(builder.subprocess, "run",
+                        lambda argv, cwd=None, check=None: calls.setdefault("argv", argv))
+    builder.build_via_build_projects(
+        project="iio_demo", platform="xilinx", build_name="iio_zed",
+        builds_dir=tmp_path, export_dir=tmp_path / "e", log_dir=tmp_path / "l")
+    assert not any(a.startswith("-hardware=") for a in calls["argv"])
