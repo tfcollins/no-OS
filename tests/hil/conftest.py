@@ -23,6 +23,8 @@ REPO_ROOT = HIL_DIR.parents[1]
 if str(HIL_DIR) not in sys.path:
     sys.path.insert(0, str(HIL_DIR))
 
+import reporting  # noqa: E402  (tests/hil must be on sys.path first, set just above)
+
 
 def pytest_addoption(parser):
     g = parser.getgroup("no-OS HIL")
@@ -49,9 +51,6 @@ def pytest_addoption(parser):
 @pytest.fixture(scope="session")
 def repo_root() -> Path:
     return REPO_ROOT
-
-
-import reporting
 
 
 def pytest_configure(config):
