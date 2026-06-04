@@ -42,9 +42,21 @@ jobs:
       manifest: "tools/hw_ci/projects.yaml"
       runner-label: ${{ vars.HW_REQUEST_RUNNER }}
       preflight-runner-label: ${{ vars.HW_PREFLIGHT_RUNNER }}
-      # zc706 no-os builds: HARDWARE is auto-detected from the project's .xsa
-      # (must be provisioned on the runner). The .elf lands at the default
-      # build/<noos_project>.elf path.
+      # zc706 no-os build environment (verified on the bq runner, Ubuntu 24.04 +
+      # Vitis 2023.2). HARDWARE is auto-detected from the project's .xsa, which
+      # is copied in from $NOOS_XSA_DIR (a repo/runner var pointing at the
+      # prebuilt hardware exports). The .elf lands at build/<noos_project>.elf.
+      #   * source Vivado/Vitis settings (xsct on PATH)
+      #   * LD_LIBRARY_PATH shim: libtinfo.so.5/ncurses5 for Vitis on Ubuntu 24.04
+      #   * NOOS_VITIS_HSI_FLOW=1: use the pure-hsi project flow (no Eclipse
+      #     backend, which crashes "Channel closed" on this OS) — see the
+      #     util.tcl fix in this repo.
       build-cmd: |
+        source "${VITIS_SETTINGS:-/opt/Xilinx/Vivado/2023.2/settings64.sh}"
+        export LD_LIBRARY_PATH="$HOME/.local/xlnxshim:${LD_LIBRARY_PATH:-}"
+        export NOOS_VITIS_HSI_FLOW=1
+        cp "${NOOS_XSA_DIR:?set NOOS_XSA_DIR to the dir holding system_top_<part>_<carrier>.xsa}/system_top_${NOOS_PROJECT}_${CARRIER}.xsa" \
+           "projects/$NOOS_PROJECT/system_top.xsa" 2>/dev/null \
+          || cp "$NOOS_XSA_DIR/system_top_adrv9371_${CARRIER}.xsa" "projects/$NOOS_PROJECT/system_top.xsa"
         make -C "projects/$NOOS_PROJECT"
       validate-banner: "Running IIOD server"
