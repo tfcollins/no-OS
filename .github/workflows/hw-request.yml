@@ -52,7 +52,9 @@ jobs:
       #     backend, which crashes "Channel closed" on this OS) — see the
       #     util.tcl fix in this repo.
       build-cmd: |
-        source "${VITIS_SETTINGS:-/opt/Xilinx/Vivado/2023.2/settings64.sh}"
+        # Vitis settings64.sh references unbound vars (e.g. PYTHONPATH on 2025.1),
+        # which is fatal under the workflow's `set -u`; relax nounset for sourcing.
+        set +u; source "${VITIS_SETTINGS:-/opt/Xilinx/Vivado/2023.2/settings64.sh}"; set -u
         export LD_LIBRARY_PATH="$HOME/.local/xlnxshim:${LD_LIBRARY_PATH:-}"
         export NOOS_VITIS_HSI_FLOW=1
         : "${NOOS_XSA_DIR:?set NOOS_XSA_DIR to the dir holding system_top_<part>_<carrier>.xsa}"
