@@ -70,7 +70,8 @@ jobs:
       # Forward the FPGA bitstream + ps7_init to `adi-lg request --mode flash`.
       bitstream-path: "projects/$NOOS_PROJECT/build_hw/system_top.bit"
       ps7-init-path: "projects/$NOOS_PROJECT/build_hw/ps7_init.tcl"
-      # The ad9371 default (demo) example prints "Done" after initializing the
-      # transceiver; that is the on-target success marker. (Build the IIO
-      # example for the "Running IIOD server" banner + libiio-over-serial.)
-      validate-banner: "Done"
+      # On-target success marker: both the ad9371 and adrv9009 demo examples
+      # print "Successfully initialized" once the RF transceiver comes up
+      # (ad9371 then prints "Done", adrv9009 "Bye"). Asserting the init line is
+      # a stronger, project-agnostic check than the per-demo end banner.
+      validate-banner: "Successfully initialized"
