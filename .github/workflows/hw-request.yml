@@ -1,0 +1,50 @@
+name: no-os HW Request (flash, DRAFT)
+
+# DRAFT / experimental. Builds a no-os reference project, JTAG-flashes it onto a
+# matching physical board via labgrid, and validates it on-target (serial
+# banner) — using the low-config no-os hw-request flow from
+# tfcollins/labgrid-plugins. Complements the build-only Azure pipeline.
+#
+# Each leg: build projects/<noos_project> -> `adi-lg request --part <part>
+# --mode flash --firmware <.elf>` (selects the board's BootNoOSJTAG strategy,
+# xsdb-loads the firmware, asserts the validation banner) -> release.
+#
+# Discovery: the preflight harvests tools/hw_ci/projects.yaml and intersects it
+# with the coordinator's live flash-capable boards; a project with no live board
+# is skipped with an annotation.
+#
+# ── BEFORE ENABLING, set these for the lab ───────────────────────────────────
+#   * vars.LG_COORDINATOR       — coordinator host:port for /api/match (REST)
+#   * vars.HW_REQUEST_RUNNER    — self-hosted label (Vivado + JTAG) for the legs
+#   * vars.HW_PREFLIGHT_RUNNER  — self-hosted label that can reach the REST API
+# The runner must have Vivado/xsdb AND be co-located with the board's JTAG, and
+# the lab hosts must be registered as runners on THIS repo/org scope (the lab
+# runners are repo-scoped; see register-hw-runners.sh --scopes).
+# The build needs the HDL .xsa for each project's carrier provisioned on the runner.
+# ─────────────────────────────────────────────────────────────────────────────
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+jobs:
+  noos-hw-request:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      contains(github.event.pull_request.labels.*.name, 'hw-request')
+    uses: tfcollins/labgrid-plugins/.github/workflows/noos-hw-request.yml@main
+    with:
+      coordinator: ${{ vars.LG_COORDINATOR }}
+      manifest: "tools/hw_ci/projects.yaml"
+      runner-label: ${{ vars.HW_REQUEST_RUNNER }}
+      preflight-runner-label: ${{ vars.HW_PREFLIGHT_RUNNER }}
+      # zc706 no-os builds: HARDWARE is auto-detected from the project's .xsa
+      # (must be provisioned on the runner). The .elf lands at the default
+      # build/<noos_project>.elf path.
+      build-cmd: |
+        make -C "projects/$NOOS_PROJECT"
+      validate-banner: "Running IIOD server"
