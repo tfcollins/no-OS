@@ -138,14 +138,19 @@ proc _vitis_hsi_project {} {
 	::hsi::utils::lg_generate [file normalize app/src/lscript.ld]
 	::hsi::utils::lg_delete
 
-	# For Zynq (cortexa9), copy Xilinx.spec needed by the linker
+	# For Zynq (cortexa9), copy Xilinx.spec needed by the linker. The spec
+	# lives under <XILINX_VITIS>/data on 2023.x but moved to the parent
+	# (<XILINX_VITIS>/../data) on later layouts, so try both.
 	if {[string first "cortexa9" $cpu] != -1} {
 		set vitis_dir $::env(XILINX_VITIS)
-		set spec_src [file normalize $vitis_dir/../data/embeddedsw/scripts/specs/arm/Xilinx.spec]
+		set spec_src [file normalize $vitis_dir/data/embeddedsw/scripts/specs/arm/Xilinx.spec]
+		if {![file exists $spec_src]} {
+			set spec_src [file normalize $vitis_dir/../data/embeddedsw/scripts/specs/arm/Xilinx.spec]
+		}
 		if {[file exists $spec_src]} {
 			file copy -force $spec_src app/src/Xilinx.spec
 		} else {
-			error "Xilinx.spec not found at $spec_src"
+			error "Xilinx.spec not found under $vitis_dir/data or $vitis_dir/../data"
 		}
 	}
 
@@ -242,7 +247,12 @@ proc create_project {} {
 
 	if {[_file_is_xsa] == 1} {
 		set vitis_year [_get_vitis_year]
-		if {$vitis_year >= 2025} {
+		# The pure-hsi flow avoids the Eclipse/vitis-server backend, which is
+		# the default on Vitis 2025+. Setting NOOS_VITIS_HSI_FLOW opts earlier
+		# Vitis (2023.x/2024.x) into it too — needed on hosts where the Eclipse
+		# backend is unavailable/unstable (e.g. Vitis 2023.2 on Ubuntu 24.04,
+		# where `app create` aborts with "Channel closed").
+		if {$vitis_year >= 2025 || [info exists ::env(NOOS_VITIS_HSI_FLOW)]} {
 			_vitis_hsi_project
 		} else {
 			setws ./
@@ -258,8 +268,8 @@ proc clean_build {} {
 	cd $::ws
 
 	set vitis_year [_get_vitis_year]
-	if {$vitis_year >= 2025} {
-		# Vitis 2025+: direct file cleanup (no Eclipse dependency)
+	if {$vitis_year >= 2025 || [info exists ::env(NOOS_VITIS_HSI_FLOW)]} {
+		# Vitis 2025+ (or NOOS_VITIS_HSI_FLOW): direct file cleanup, no Eclipse
 		file delete -force app/src
 		file mkdir app/src
 	} else {
