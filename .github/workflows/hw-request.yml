@@ -55,8 +55,20 @@ jobs:
         source "${VITIS_SETTINGS:-/opt/Xilinx/Vivado/2023.2/settings64.sh}"
         export LD_LIBRARY_PATH="$HOME/.local/xlnxshim:${LD_LIBRARY_PATH:-}"
         export NOOS_VITIS_HSI_FLOW=1
-        cp "${NOOS_XSA_DIR:?set NOOS_XSA_DIR to the dir holding system_top_<part>_<carrier>.xsa}/system_top_${NOOS_PROJECT}_${CARRIER}.xsa" \
-           "projects/$NOOS_PROJECT/system_top.xsa" 2>/dev/null \
-          || cp "$NOOS_XSA_DIR/system_top_adrv9371_${CARRIER}.xsa" "projects/$NOOS_PROJECT/system_top.xsa"
+        : "${NOOS_XSA_DIR:?set NOOS_XSA_DIR to the dir holding system_top_<part>_<carrier>.xsa}"
+        XSA="$NOOS_XSA_DIR/system_top_${NOOS_PROJECT}_${CARRIER}.xsa"
+        [ -f "$XSA" ] || XSA="$NOOS_XSA_DIR/system_top_adrv9371_${CARRIER}.xsa"
+        cp "$XSA" "projects/$NOOS_PROJECT/system_top.xsa"
+        # The JTAG flash needs the FPGA bitstream + ps7_init (a bare-metal Zynq
+        # app won't run without PS init + the design fabric) — extract both from
+        # the .xsa into build_hw/ for the flash step (see *-path inputs below).
+        mkdir -p "projects/$NOOS_PROJECT/build_hw"
+        ( cd "projects/$NOOS_PROJECT/build_hw" && unzip -o -q "$XSA" ps7_init.tcl system_top.bit )
         make -C "projects/$NOOS_PROJECT"
-      validate-banner: "Running IIOD server"
+      # Forward the FPGA bitstream + ps7_init to `adi-lg request --mode flash`.
+      bitstream-path: "projects/$NOOS_PROJECT/build_hw/system_top.bit"
+      ps7-init-path: "projects/$NOOS_PROJECT/build_hw/ps7_init.tcl"
+      # The ad9371 default (demo) example prints "Done" after initializing the
+      # transceiver; that is the on-target success marker. (Build the IIO
+      # example for the "Running IIOD server" banner + libiio-over-serial.)
+      validate-banner: "Done"
