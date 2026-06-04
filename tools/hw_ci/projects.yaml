@@ -1,0 +1,19 @@
+# no-os hardware-CI project manifest.
+#
+# Maps a no-os reference project (projects/<noos_project>) to the coordinator
+# `part` it should be requested as and the FPGA carriers it supports (in
+# preference order). The `adi-lg-hw-ci noos-matrix` preflight intersects this
+# with the coordinator's live FLASH-capable boards (GET /api/match?mode=flash)
+# to schedule one build+flash+validate leg per buildable project on a live board.
+#
+# `part` may be a coordinator catalog alias (e.g. `ad9371` resolves to the
+# adrv9371 eval board). Only projects whose part advertises a `flash` block in
+# the coordinator catalog AND has a live board are scheduled; the rest are
+# annotated as skipped.
+projects:
+  - noos_project: adrv9009   # projects/adrv9009 -> ADRV9009 on ZC706 (place nemo)
+    part: adrv9009
+    carriers: [zc706]
+  - noos_project: ad9371     # projects/ad9371 -> AD9371/ADRV9371 on ZC706 (place bq)
+    part: ad9371
+    carriers: [zc706]
