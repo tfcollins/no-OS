@@ -1,9 +1,9 @@
-name: no-os HW Request (flash, DRAFT)
+name: no-os HW Request (flash)
 
-# DRAFT / experimental. Builds a no-os reference project, JTAG-flashes it onto a
-# matching physical board via labgrid, and validates it on-target (serial
-# banner) — using the low-config no-os hw-request flow from
-# tfcollins/labgrid-plugins. Complements the build-only Azure pipeline.
+# Builds a no-os reference project, JTAG-flashes it onto a matching physical
+# board via labgrid, and validates it on-target (serial banner) — using the
+# low-config no-os hw-request flow from tfcollins/labgrid-plugins. Complements
+# the build-only Azure pipeline.
 #
 # Each leg: build projects/<noos_project> -> `adi-lg request --part <part>
 # --mode flash --firmware <.elf>` (selects the board's BootNoOSJTAG strategy,
@@ -13,15 +13,24 @@ name: no-os HW Request (flash, DRAFT)
 # with the coordinator's live flash-capable boards; a project with no live board
 # is skipped with an annotation.
 #
-# ── BEFORE ENABLING, set these for the lab ───────────────────────────────────
-#   * vars.LG_COORDINATOR       — coordinator host:port for /api/match (REST)
-#   * vars.HW_REQUEST_RUNNER    — self-hosted label (Vivado + JTAG) for the legs
+# The reusable workflow's `build-noos` step now owns the whole build: it sources
+# each board's HDL `.xsa` from the Kuiper image (no NOOS_XSA_DIR / .xsa staging),
+# composes the Vivado/Vitis env (auto-detect settings64.sh + the libtinfo .so.5
+# shim + NOOS_VITIS_HSI_FLOW=1), extracts the bitstream + ps7_init, and runs
+# make. The per-project validation banner and any extra make vars are declared
+# in tools/hw_ci/projects.yaml (validate_banner defaults to
+# "Successfully initialized"). So this consumer only supplies four inputs.
+#
+# ── BEFORE ENABLING, set these repo vars for the lab ──────────────────────────
+#   * vars.LG_COORDINATOR       — gRPC coordinator host:port (e.g. host:20408);
+#                                 the workflow derives the REST API from it.
+#   * vars.HW_REQUEST_RUNNER    — fallback self-hosted label for the per-leg jobs
 #   * vars.HW_PREFLIGHT_RUNNER  — self-hosted label that can reach the REST API
-# The runner must have Vivado/xsdb AND be co-located with the board's JTAG, and
-# the lab hosts must be registered as runners on THIS repo/org scope (the lab
-# runners are repo-scoped; see register-hw-runners.sh --scopes).
-# The build needs the HDL .xsa for each project's carrier provisioned on the runner.
-# ─────────────────────────────────────────────────────────────────────────────
+# Each leg lands on the runner co-located with its board (the place's `runner`
+# tag), falling back to HW_REQUEST_RUNNER. A leg runner only needs Vivado/xsdb
+# installed and to be wired to the board's JTAG; lab hosts must be registered as
+# runners on THIS repo/org scope (see register-hw-runners.sh --scopes).
+# ──────────────────────────────────────────────────────────────────────────────
 
 permissions:
   contents: read
@@ -42,36 +51,3 @@ jobs:
       manifest: "tools/hw_ci/projects.yaml"
       runner-label: ${{ vars.HW_REQUEST_RUNNER }}
       preflight-runner-label: ${{ vars.HW_PREFLIGHT_RUNNER }}
-      # zc706 no-os build environment (verified on the bq runner, Ubuntu 24.04 +
-      # Vitis 2023.2). HARDWARE is auto-detected from the project's .xsa, which
-      # is copied in from $NOOS_XSA_DIR (a repo/runner var pointing at the
-      # prebuilt hardware exports). The .elf lands at build/<noos_project>.elf.
-      #   * source Vivado/Vitis settings (xsct on PATH)
-      #   * LD_LIBRARY_PATH shim: libtinfo.so.5/ncurses5 for Vitis on Ubuntu 24.04
-      #   * NOOS_VITIS_HSI_FLOW=1: use the pure-hsi project flow (no Eclipse
-      #     backend, which crashes "Channel closed" on this OS) — see the
-      #     util.tcl fix in this repo.
-      build-cmd: |
-        # Vitis settings64.sh references unbound vars (e.g. PYTHONPATH on 2025.1),
-        # which is fatal under the workflow's `set -u`; relax nounset for sourcing.
-        set +u; source "${VITIS_SETTINGS:-/opt/Xilinx/Vivado/2023.2/settings64.sh}"; set -u
-        export LD_LIBRARY_PATH="$HOME/.local/xlnxshim:${LD_LIBRARY_PATH:-}"
-        export NOOS_VITIS_HSI_FLOW=1
-        : "${NOOS_XSA_DIR:?set NOOS_XSA_DIR to the dir holding system_top_<part>_<carrier>.xsa}"
-        XSA="$NOOS_XSA_DIR/system_top_${NOOS_PROJECT}_${CARRIER}.xsa"
-        [ -f "$XSA" ] || XSA="$NOOS_XSA_DIR/system_top_adrv9371_${CARRIER}.xsa"
-        cp "$XSA" "projects/$NOOS_PROJECT/system_top.xsa"
-        # The JTAG flash needs the FPGA bitstream + ps7_init (a bare-metal Zynq
-        # app won't run without PS init + the design fabric) — extract both from
-        # the .xsa into build_hw/ for the flash step (see *-path inputs below).
-        mkdir -p "projects/$NOOS_PROJECT/build_hw"
-        ( cd "projects/$NOOS_PROJECT/build_hw" && unzip -o -q "$XSA" ps7_init.tcl system_top.bit )
-        make -C "projects/$NOOS_PROJECT"
-      # Forward the FPGA bitstream + ps7_init to `adi-lg request --mode flash`.
-      bitstream-path: "projects/$NOOS_PROJECT/build_hw/system_top.bit"
-      ps7-init-path: "projects/$NOOS_PROJECT/build_hw/ps7_init.tcl"
-      # On-target success marker: both the ad9371 and adrv9009 demo examples
-      # print "Successfully initialized" once the RF transceiver comes up
-      # (ad9371 then prints "Done", adrv9009 "Bye"). Asserting the init line is
-      # a stronger, project-agnostic check than the per-demo end banner.
-      validate-banner: "Successfully initialized"
