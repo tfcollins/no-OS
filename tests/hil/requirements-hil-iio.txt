@@ -1,0 +1,5 @@
+# Phase 2 (IIO over serial/network) extras. Kept separate because pytest-libiio
+# imports libiio at load time.
+#   ./.hilvenv/bin/pip install -r tests/hil/requirements-hil-iio.txt
+pytest-libiio
+pyadi-iio

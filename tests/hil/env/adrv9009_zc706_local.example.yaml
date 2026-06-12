@@ -1,0 +1,22 @@
+# Example labgrid env: ADRV9009 on ZC706, single local bench (no coordinator).
+# Boards attached directly to the machine running pytest. Copy, edit, then:
+#   pytest tests/hil/tests --lg-env tests/hil/env/adrv9009_zc706_local.yaml \
+#     -m iio_hardware --noos-project adrv9009 --noos-build demo \
+#     --noos-xsa /path/adrv9009_zc706.xsa --noos-jtag-cable "" \
+#     --noos-xsct /opt/Xilinx/2025.1/Vitis/bin/xsct
+targets:
+  main:
+    resources:
+      RawSerialPort:
+        port: /dev/ttyUSB0             # board UART on this machine
+        speed: 115200
+      USBPowerPort:                    # or a NetworkPowerPort / plugin outlet
+        match:
+          ID_PATH: REPLACE_ME-usb-hub-path
+        index: 1
+    drivers:
+      SerialDriver: {}                 # ConsoleProtocol
+      USBPowerDriver: {}               # PowerProtocol (off/on/cycle)
+
+imports:
+  - adi_lg_plugins

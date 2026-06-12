@@ -1,0 +1,73 @@
+# Hardware-in-the-loop tests for no-OS targets (ADRV9009 / ZC706 first).
+#
+# Runs on a SELF-HOSTED runner with Vitis on PATH, the .xsa design, and network
+# access to the labgrid coordinator + board farm. Separate from the Azure
+# compile/style CI. Triggered manually or on changes to the Xilinx build, the
+# adrv9009 project, or the HIL harness.
+name: HIL (ADRV9009 / ZC706)
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'drivers/platform/xilinx/**'
+      - 'drivers/axi_core/**'
+      - 'drivers/rf-transceiver/talise/**'
+      - 'drivers/frequency/**'
+      - 'jesd204/**'
+      - 'projects/adrv9009/**'
+      - 'tools/scripts/**'
+      - 'tests/hil/**'
+
+jobs:
+  hil-adrv9009-zc706:
+    runs-on: [self-hosted, labgrid, xilinx]
+    env:
+      XILINX_VITIS: /opt/Xilinx/2025.1/Vitis
+      NOOS_XSA: ${{ secrets.ADRV9009_ZC706_XSA }}
+      LG_ENV: tests/hil/env/adrv9009_zc706.yaml      # managed on the runner
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+
+      - name: Set up HIL venv
+        run: |
+          python3 -m venv .hilvenv
+          ./.hilvenv/bin/pip install -r tests/hil/requirements-hil.txt
+
+      - name: Harness unit tests (no hardware)
+        run: |
+          ./.hilvenv/bin/pytest \
+            tests/hil/test_builder.py tests/hil/test_loaders.py \
+            tests/hil/test_reporting.py tests/hil/test_jtag_loader.py -v
+
+      - name: Phase 1 - boot/console
+        run: |
+          PATH="$XILINX_VITIS/bin:$PATH" \
+          ./.hilvenv/bin/pytest tests/hil/tests/test_boot_console.py \
+            --lg-env "$LG_ENV" -m iio_hardware \
+            --noos-project adrv9009 --noos-build demo --noos-xsa "$NOOS_XSA" \
+            --junit-xml=hil-phase1.xml --html=hil-phase1.html --self-contained-html
+
+      - name: Phase 2 - IIO over serial
+        if: ${{ vars.RUN_HIL_PHASE2 == 'true' }}
+        run: |
+          ./.hilvenv/bin/pip install -r tests/hil/requirements-hil-iio.txt
+          PATH="$XILINX_VITIS/bin:$PATH" \
+          ./.hilvenv/bin/pytest tests/hil/tests/test_iio_serial.py \
+            --lg-env "$LG_ENV" -m iio_hardware \
+            --noos-project adrv9009 --noos-build iio --noos-xsa "$NOOS_XSA" \
+            --noos-iio-uri "${{ vars.ADRV9009_ZC706_IIO_URI }}" \
+            --junit-xml=hil-phase2.xml --html=hil-phase2.html --self-contained-html
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: hil-reports
+          path: |
+            hil-phase1.xml
+            hil-phase1.html
+            hil-phase2.xml
+            hil-phase2.html
+          if-no-files-found: ignore
