@@ -101,3 +101,10 @@ WSL2
 
     build_guides/build_wsl
 
+HARDWARE-IN-THE-LOOP TESTING
+============================
+.. toctree::
+    :maxdepth: 1
+
+    build_guides/hil_testing
+
