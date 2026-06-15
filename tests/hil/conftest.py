@@ -33,6 +33,14 @@ def pytest_addoption(parser):
     g.addoption("--noos-project", default=os.environ.get("NOOS_PROJECT", "adrv9009"))
     g.addoption("--noos-platform", default=os.environ.get("NOOS_PLATFORM", "xilinx"))
     g.addoption("--noos-build", default=os.environ.get("NOOS_BUILD", "demo"))
+    g.addoption("--noos-build-system",
+                default=os.environ.get("NOOS_BUILD_SYSTEM", "cmake"),
+                choices=["cmake", "make"],
+                help="Build firmware with CMake (default) or the legacy Makefiles")
+    g.addoption("--noos-preset", default=os.environ.get("NOOS_PRESET"),
+                help="CMake preset (default: derived from --noos-project/--noos-build)")
+    g.addoption("--noos-defconfig", default=os.environ.get("NOOS_DEFCONFIG"),
+                help="Project defconfig path (default: <project>/project.conf)")
     g.addoption("--noos-hardware", default=os.environ.get("NOOS_HARDWARE"))
     g.addoption("--noos-builds-dir", default=os.environ.get("NOOS_BUILDS_DIR", "build-hil"))
     g.addoption("--noos-python", default=os.environ.get("NOOS_PYTHON", sys.executable))
@@ -53,6 +61,32 @@ def repo_root() -> Path:
     return REPO_ROOT
 
 
+# Map the build "flavor" (--noos-build) to a CMake preset, per project. The HIL
+# flow names flavors "demo"/"iio"; the CMake presets embed the board + variant.
+# Falls back to treating the flavor name as the preset, so a preset can also be
+# passed directly via --noos-build (or overridden with --noos-preset).
+_PRESET_MAP = {
+    ("adrv9009", "demo"): "adrv9009_zc706",
+    ("adrv9009", "iio"): "adrv9009_zc706_iiod",
+}
+
+
+def _resolve_preset(config) -> str:
+    explicit = config.getoption("--noos-preset")
+    if explicit:
+        return explicit
+    project = config.getoption("--noos-project")
+    flavor = config.getoption("--noos-build")
+    return _PRESET_MAP.get((project, flavor), flavor)
+
+
+def _resolve_defconfig(config) -> str:
+    explicit = config.getoption("--noos-defconfig")
+    if explicit:
+        return explicit
+    return f"{config.getoption('--noos-project')}/project.conf"
+
+
 def pytest_configure(config):
     # pytest-metadata (bundled with pytest-html) exposes config._metadata; fold
     # in our run-level metadata so it shows in the HTML report header. No-op when
@@ -69,6 +103,7 @@ def _record_hil_metadata(request, record_property):
     record_property("noos_project", cfg.getoption("--noos-project"))
     record_property("noos_platform", cfg.getoption("--noos-platform"))
     record_property("noos_build", cfg.getoption("--noos-build"))
+    record_property("noos_build_system", cfg.getoption("--noos-build-system"))
     record_property("noos_loader", cfg.getoption("--noos-loader"))
     for hw in reporting.marker_values(request.node, "iio_hardware"):
         record_property("iio_hardware", hw)
@@ -90,19 +125,33 @@ def firmware(request, tmp_path_factory):
         builds_dir = Path(request.config.getoption("--noos-builds-dir"))
         if not builds_dir.is_absolute():
             builds_dir = REPO_ROOT / builds_dir
-        try:
-            builder.build_via_build_projects(
-                project=request.config.getoption("--noos-project"),
-                platform=request.config.getoption("--noos-platform"),
-                build_name=request.config.getoption("--noos-build"),
-                hardware=request.config.getoption("--noos-hardware"),
-                builds_dir=builds_dir,
-                export_dir=builds_dir / "export",
-                log_dir=builds_dir / "logs",
-                python=request.config.getoption("--noos-python"),
-            )
-        except subprocess.CalledProcessError as exc:
-            pytest.fail(f"build_projects.py failed: {exc}")
+        build_system = request.config.getoption("--noos-build-system")
+        if build_system == "cmake":
+            try:
+                builder.build_via_cmake(
+                    project=request.config.getoption("--noos-project"),
+                    preset=_resolve_preset(request.config),
+                    defconfig=_resolve_defconfig(request.config),
+                    builds_dir=builds_dir,
+                    xsa=request.config.getoption("--noos-xsa"),
+                    python=request.config.getoption("--noos-python"),
+                )
+            except subprocess.CalledProcessError as exc:
+                pytest.fail(f"cmake build failed: {exc}")
+        else:
+            try:
+                builder.build_via_build_projects(
+                    project=request.config.getoption("--noos-project"),
+                    platform=request.config.getoption("--noos-platform"),
+                    build_name=request.config.getoption("--noos-build"),
+                    hardware=request.config.getoption("--noos-hardware"),
+                    builds_dir=builds_dir,
+                    export_dir=builds_dir / "export",
+                    log_dir=builds_dir / "logs",
+                    python=request.config.getoption("--noos-python"),
+                )
+            except subprocess.CalledProcessError as exc:
+                pytest.fail(f"build_projects.py failed: {exc}")
         arts = builder.discover_artifacts(builds_dir)
 
     if arts.elf is None and arts.boot_bin is None:
