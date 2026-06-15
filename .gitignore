@@ -37,3 +37,10 @@ __pycache__/
 
 local_variables.mk
 *generated*
+
+# CMake build system
+.no_os_venv/
+CMakeUserPresets.json
+build-*/
+cmake-build-*/
+no-os.code-workspace

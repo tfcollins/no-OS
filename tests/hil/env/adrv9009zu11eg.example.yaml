@@ -1,0 +1,31 @@
+# Example labgrid env: ADRV9009-ZU11EG (dual Talise) on tron, via the
+# coordinator at 10.0.0.41. The serial console + JTAG come from the "tron"
+# place (tron/tlab/*), published by tron's exporter
+# (lg_adrv9009zu11eg_tron_exporter.yaml). Copy to adrv9009zu11eg.yaml, set the
+# JTAG hw_server host to tron's address, then:
+#   pytest tests/hil/tests --lg-env tests/hil/env/adrv9009zu11eg.yaml \
+#     -m iio_hardware --noos-project adrv9009 \
+#     --noos-build demo --noos-preset adrv9009zu11eg \
+#     --noos-xsa /path/adrv9009zu11eg.xsa
+# (for the IIO phase: --noos-build iio --noos-preset adrv9009zu11eg_iiod)
+targets:
+  main:
+    resources:
+      RemotePlace:
+        name: tron                     # coordinator place -> tron/tlab/*
+      XilinxDeviceJTAG:
+        jtag_cable_id: ""              # "" = first cable on tron's hw_server
+        host: tron.local              # -> XSCT_REMOTE_HOST (tron, 10.0.0.232)
+        port: 3121                     # -> XSCT_REMOTE_PORT (xilinx hw_server default)
+        # NOTE: JTAG load needs a Xilinx hw_server running on tron; tron has no
+        # Vitis/Vivado installed yet, so this path is not yet functional.
+      XilinxVivadoTool:
+        xsdb_path: /tools/Xilinx/2025.1/Vitis/bin/xsct
+    drivers:
+      SerialDriver: {}                 # ConsoleProtocol for Phase-1 expect()
+    options:
+      coordinator_address: "10.0.0.41:20408"
+
+# Load the ADI plugin drivers/resources/strategies + the iio_* pytest markers:
+imports:
+  - adi_lg_plugins

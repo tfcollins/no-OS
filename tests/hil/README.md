@@ -7,7 +7,9 @@ and emits JUnit XML + HTML reports.
 
 ## Layout
 
-- `builder.py` — produce (via `tools/scripts/build_projects.py`) or locate boot artifacts.
+- `builder.py` — produce or locate boot artifacts. Builds with CMake by default
+  (`cmake --preset` + `cmake --build`); the legacy Makefile path
+  (`tools/scripts/build_projects.py`) is still available via `--noos-build-system make`.
 - `loaders/` — `jtag` (xsct `.elf` load) and `sdmux` (BOOT.BIN SD boot); selectable.
 - `jtag_loader.py` — wraps `tools/scripts/platform/xilinx/util.tcl`.
 - `reporting.py` + `conftest.py` — fixtures, options, JUnit/HTML metadata hooks.
@@ -47,7 +49,10 @@ pytest tests/hil/tests --lg-env tests/hil/env/adrv9009_zc706.yaml \
 | Option | Meaning |
 | --- | --- |
 | `--noos-artifacts <dir\|zip>` | Use pre-built boot artifacts (skip build) |
-| `--noos-project/-platform/-build` | What `build_projects.py` builds |
+| `--noos-project/-platform/-build` | What to build (build "flavor", e.g. `demo`/`iio`) |
+| `--noos-build-system {cmake,make}` | Build with CMake (default) or legacy Makefiles |
+| `--noos-preset` | CMake preset (default: derived from project+build, e.g. `adrv9009_zc706`) |
+| `--noos-defconfig` | Project defconfig (default `<project>/project.conf`) |
 | `--noos-loader {jtag,sdmux,auto}` | Load mechanism (default `auto`) |
 | `--noos-xsa` | Xilinx hardware design (required for JTAG load) |
 | `--noos-iio-uri` | libiio URI for Phase 2 (else Phase 2 skips) |

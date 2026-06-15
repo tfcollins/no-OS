@@ -76,3 +76,33 @@ def test_build_via_build_projects_omits_empty_hardware(tmp_path, monkeypatch):
         project="iio_demo", platform="xilinx", build_name="iio_zed",
         builds_dir=tmp_path, export_dir=tmp_path / "e", log_dir=tmp_path / "l")
     assert not any(a.startswith("-hardware=") for a in calls["argv"])
+
+
+def test_build_via_cmake_argv(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(builder.subprocess, "run",
+                        lambda argv, cwd=None, check=None: calls.append(argv))
+    out = builder.build_via_cmake(
+        project="adrv9009", preset="adrv9009_zc706",
+        defconfig="adrv9009/project.conf", builds_dir=tmp_path,
+        xsa="/tmp/zc706.xsa", jobs=8)
+    assert out == tmp_path / "build-adrv9009_zc706"
+    configure, build = calls
+    assert configure[:3] == ["cmake", "-B", str(tmp_path / "build-adrv9009_zc706")]
+    assert "--preset" in configure and "adrv9009_zc706" in configure
+    assert "-DPROJECT_DEFCONFIG=adrv9009/project.conf" in configure
+    assert "-DXSA_PATH=/tmp/zc706.xsa" in configure
+    assert build[:2] == ["cmake", "--build"]
+    assert build[-4:] == ["--target", "adrv9009", "-j", "8"]
+
+
+def test_build_via_cmake_omits_xsa_when_absent(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(builder.subprocess, "run",
+                        lambda argv, cwd=None, check=None: calls.append(argv))
+    builder.build_via_cmake(
+        project="adrv9009", preset="adrv9009_zc706",
+        defconfig="adrv9009/project.conf", builds_dir=tmp_path)
+    configure = calls[0]
+    assert not any(a.startswith("-DXSA_PATH=") for a in configure)
+    assert not any(a == "-j" for a in calls[1])

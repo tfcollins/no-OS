@@ -1,8 +1,15 @@
 """Produce or locate no-OS boot artifacts for HIL tests.
 
-build_projects.py's xilinx export ships BOOT.BIN + bootgen_sysfiles.tar.gz but
-NOT the .elf, so build mode (Task 3) discovers over the builds_dir (where the
-.elf lives), not just the export dir.
+Two build paths are supported:
+
+- build_via_cmake(): the CMake build (default). Runs `cmake --preset <preset>`
+  + `cmake --build --target <project>`; the .elf lands under
+  <build_dir>/build/. Xilinx BSP generation needs a hardware design, passed
+  through as -DXSA_PATH.
+- build_via_build_projects(): the legacy Makefile build, kept for projects not
+  yet migrated to CMake. Its xilinx export ships BOOT.BIN +
+  bootgen_sysfiles.tar.gz but NOT the .elf, so it discovers over the builds_dir
+  (where the .elf lives), not just the export dir.
 """
 
 from __future__ import annotations
@@ -91,3 +98,34 @@ def build_via_build_projects(*, project, platform, build_name, builds_dir,
         argv.append(f"-hardware={hardware}")
     subprocess.run(argv, cwd=REPO_ROOT, check=True)
     return builds_dir
+
+
+def build_via_cmake(*, project, preset, defconfig, builds_dir, xsa=None,
+                    jobs=None, python=sys.executable) -> Path:
+    """Configure + build one project with CMake. Returns the build dir Path.
+
+    Mirrors tools/scripts/no_os_build.py's run_build (`cmake -B <dir> --preset
+    <preset> -DPROJECT_DEFCONFIG=<defconfig>` then `cmake --build --target
+    <project>`), with -DXSA_PATH added so the Xilinx BSP can be generated. The
+    .elf is written under <build_dir>/build/; call discover_artifacts() on the
+    returned dir afterwards. Raises subprocess.CalledProcessError on failure.
+
+    `python` is accepted for symmetry with build_via_build_projects(); CMake is
+    invoked directly, so it is unused here.
+    """
+    builds_dir = Path(builds_dir)
+    build_dir = builds_dir / f"build-{preset}"
+
+    configure_cmd = [
+        "cmake", "-B", str(build_dir), "--preset", preset,
+        f"-DPROJECT_DEFCONFIG={defconfig}",
+    ]
+    if xsa:
+        configure_cmd.append(f"-DXSA_PATH={xsa}")
+    subprocess.run(configure_cmd, cwd=REPO_ROOT, check=True)
+
+    build_cmd = ["cmake", "--build", str(build_dir), "--target", project]
+    if jobs:
+        build_cmd.extend(["-j", str(jobs)])
+    subprocess.run(build_cmd, cwd=REPO_ROOT, check=True)
+    return build_dir
