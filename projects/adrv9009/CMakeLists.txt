@@ -9,24 +9,38 @@ else()
 	set(ADRV9009_PROFILE tx_bw100_ir122p88_rx_bw100_or122p88_orx_bw100_or122p88_dc122p88)
 endif()
 
-# Application entry point depends on the processor:
-#   cortexa9          -> Zynq-7000 (ZC706)            -> headless_arm.c
-#   cortexa53/cortexa72 -> Zynq UltraScale+ / Versal  -> headless_zu.c
-if(XILINX_ARCH STREQUAL "cortexa53" OR XILINX_ARCH STREQUAL "cortexa72")
-	set(ADRV9009_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/src/app/headless_zu.c)
-else()
-	set(ADRV9009_MAIN ${CMAKE_CURRENT_SOURCE_DIR}/src/app/headless_arm.c)
-endif()
-
+# Sources common to every processor.
 target_sources(adrv9009 PRIVATE
-	${ADRV9009_MAIN}
-	${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_clocking.c
-	${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_jesd.c
-	${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_transceiver.c
-	${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_talise.c
 	${CMAKE_CURRENT_SOURCE_DIR}/src/devices/adi_hal/no_os_hal.c
 	${CMAKE_CURRENT_SOURCE_DIR}/profiles/${ADRV9009_PROFILE}/talise_config.c
 )
+
+# The Talise integration differs by processor (mirrors the legacy
+# arm_src.mk / zu_src.mk split), and the two paths define the same symbols
+# (adrv9009_check_sysref_rate, the firmware blobs) so they are mutually
+# exclusive:
+#   cortexa9 (Zynq-7000 / ZC706): the application provides its own Talise glue
+#     (app_talise.c + app_clocking/jesd/transceiver, headless_arm.c).
+#   cortexa53/cortexa72 (ZynqMP/Versal, e.g. ZCU102): headless_zu.c drives the
+#     reusable no-OS Talise driver wrapper (drivers/.../talise/adrv9009*.c).
+# The vendor Talise API (talise/api/*.c) is compiled into the no-os library by
+# drivers/rf-transceiver/CMakeLists.txt (CONFIG_RF_TRANSCEIVER_ADRV9009).
+set(ADRV9009_TALISE_DIR ${NO_OS_DIR}/drivers/rf-transceiver/talise)
+if(XILINX_ARCH STREQUAL "cortexa53" OR XILINX_ARCH STREQUAL "cortexa72")
+	target_sources(adrv9009 PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/src/app/headless_zu.c
+		${ADRV9009_TALISE_DIR}/adrv9009.c
+		${ADRV9009_TALISE_DIR}/adrv9009_conv.c
+	)
+else()
+	target_sources(adrv9009 PRIVATE
+		${CMAKE_CURRENT_SOURCE_DIR}/src/app/headless_arm.c
+		${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_clocking.c
+		${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_jesd.c
+		${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_transceiver.c
+		${CMAKE_CURRENT_SOURCE_DIR}/src/app/app_talise.c
+	)
+endif()
 
 # These include dirs go on `no-os` (not just the adrv9009 executable) because
 # the Talise driver sources compiled into the no-os library include the

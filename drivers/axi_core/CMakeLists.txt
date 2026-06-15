@@ -36,16 +36,27 @@ target_include_directories(no-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/iio_axi_adc)
 no_os_sources_ifdef(CONFIG_AXI_CORE_IIO_AXI_DAC ${CMAKE_CURRENT_SOURCE_DIR}/iio_axi_dac/iio_axi_dac.c)
 target_include_directories(no-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/iio_axi_dac)
 
-# jesd204
+# jesd204 — platform-agnostic AXI link layer
 no_os_sources_ifdef(CONFIG_AXI_CORE_JESD204
-    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/altera_a10_atx_pll.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/altera_a10_cdr_pll.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/altera_adxcvr.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/axi_adxcvr.c
     ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/axi_jesd204_rx.c
     ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/axi_jesd204_tx.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/jesd204_clk.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/xilinx_transceiver.c)
+    ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/jesd204_clk.c)
+# The transceiver backend is platform-specific: the Altera A10 sources need
+# Nios headers (io.h) and the Xilinx sources need the Vitis BSP, so they cannot
+# both be compiled. Select by PLATFORM (mirrors the per-platform src.mk of the
+# Makefile build).
+if(CONFIG_AXI_CORE_JESD204)
+    if(PLATFORM STREQUAL "xilinx")
+        target_sources(no-os PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/axi_adxcvr.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/xilinx_transceiver.c)
+    elseif(PLATFORM STREQUAL "altera")
+        target_sources(no-os PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/altera_a10_atx_pll.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/altera_a10_cdr_pll.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/jesd204/altera_adxcvr.c)
+    endif()
+endif()
 target_include_directories(no-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/jesd204)
 
 # spi_engine

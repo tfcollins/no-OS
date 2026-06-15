@@ -43,3 +43,4 @@ local_variables.mk
 CMakeUserPresets.json
 build-*/
 cmake-build-*/
+no-os.code-workspace

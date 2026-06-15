@@ -34,10 +34,12 @@ no_os_sources_ifdef(CONFIG_RF_TRANSCEIVER_ADRV9002
     ${CMAKE_CURRENT_SOURCE_DIR}/navassa/adrv9002_conv.c)
 target_include_directories(no-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/navassa)
 
-# talise (adrv9009): no-OS wrapper + the vendor Talise API library
+# talise (adrv9009): the vendor Talise API library. The no-OS driver wrapper
+# (talise/adrv9009.c + adrv9009_conv.c) is NOT compiled here: it defines the
+# same symbols (adrv9009_check_sysref_rate, the firmware blobs) as the adrv9009
+# baremetal project's app_talise.c, so the project selects the wrapper OR
+# app_talise.c per-arch itself (see projects/adrv9009/CMakeLists.txt).
 no_os_sources_ifdef(CONFIG_RF_TRANSCEIVER_ADRV9009
-    ${CMAKE_CURRENT_SOURCE_DIR}/talise/adrv9009.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/talise/adrv9009_conv.c
     ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_agc.c
     ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_arm.c
     ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise.c

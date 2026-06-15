@@ -45,6 +45,11 @@ function(config_xilinx_sdk BUILD_TARGET)
 	set(BSP_LIBDIR "${BSP_DIR}/bsp/${XILINX_PROC}/lib")
 	set(BSP_LIB "${BSP_LIBDIR}/libxil.a")
 	set(LSCRIPT "${BSP_DIR}/app/src/lscript.ld")
+	# Zynq-7000 (cortexa9) needs Xilinx.spec to pull in the standalone startup
+	# (xil-crt0) instead of libgloss crt0.S, which references __bss_start__/
+	# __bss_end__ that the BSP linker script does not define. util.tcl copies the
+	# spec here only for cortexa9; ZynqMP/Versal don't use one.
+	set(XILINX_SPEC "${BSP_DIR}/app/src/Xilinx.spec")
 	set(XILINX_UTIL_TCL "${NO_OS_DIR}/tools/scripts/platform/xilinx/util.tcl")
 
 	if(NOT XSCT_EXECUTABLE OR NOT DEFINED XSA_FILE OR NOT EXISTS "${XSA_FILE}")
@@ -82,5 +87,10 @@ function(config_xilinx_sdk BUILD_TARGET)
 		-Wl,--start-group xil gcc c -Wl,--end-group)
 	if(EXISTS "${LSCRIPT}")
 		target_link_options(${BUILD_TARGET} PRIVATE -T${LSCRIPT})
+	endif()
+	# cortexa9: use the Xilinx standalone startup spec (mirrors xilinx.mk).
+	if(EXISTS "${XILINX_SPEC}")
+		target_link_options(${BUILD_TARGET} PRIVATE
+			-specs=${XILINX_SPEC} -Wl,-build-id=none)
 	endif()
 endfunction()
