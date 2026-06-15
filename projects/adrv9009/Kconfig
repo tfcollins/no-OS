@@ -1,0 +1,21 @@
+menu "ADRV9009 Configuration"
+
+choice
+	prompt "Talise profile"
+	default ADRV9009_PROFILE_BW100
+	help
+	  Select the Talise profile (clock/bandwidth set) to compile into the
+	  firmware. The ZC706 + ADRV9009-W/PCBZ combination supports BW100 only.
+
+config ADRV9009_PROFILE_BW100
+	bool "BW100 (Tx/Rx/ORx 100 MHz, 122.88 MSPS)"
+
+config ADRV9009_PROFILE_BW200
+	bool "BW200 (Tx/Rx/ORx 200 MHz, 245.76 MSPS)"
+
+config ADRV9009_PROFILE_BW400
+	bool "BW400 (Tx/ORx 400 MHz, Rx 200 MHz)"
+
+endchoice
+
+endmenu

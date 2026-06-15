@@ -1,0 +1,80 @@
+menuconfig XILINX
+	bool "Xilinx Platform Drivers"
+	default n
+	help
+	  Enable support for Xilinx platform drivers.
+
+	  This section contains low-level platform drivers that wrap the
+	  Xilinx standalone BSP (libxil) for Zynq-7000, Zynq UltraScale+
+	  MPSoC, Versal, and MicroBlaze targets. They provide hardware
+	  abstraction for peripherals such as GPIO, SPI, I2C, UART,
+	  interrupt handling, and timers.
+
+if XILINX
+
+config UART_XILINX
+	bool "Enable Xilinx UART driver"
+	depends on UART
+	default n
+	help
+	  Enable Xilinx-specific UART driver implementation
+	  (XUartPs / XUartLite).
+
+config IRQ_XILINX
+	bool "Enable Xilinx IRQ driver"
+	depends on IRQ
+	default n
+	help
+	  Enable Xilinx-specific interrupt controller driver
+	  (XScuGic / XIntc).
+
+config TIMER_XILINX
+	bool "Enable Xilinx Timer driver"
+	depends on TIMER
+	default n
+	help
+	  Enable Xilinx-specific Timer driver implementation.
+
+config GPIO_XILINX
+	bool "Enable Xilinx GPIO driver"
+	depends on GPIO
+	default n
+	help
+	  Enable Xilinx-specific GPIO driver implementation.
+
+config GPIO_IRQ_XILINX
+	bool "Enable Xilinx GPIO IRQ driver"
+	depends on GPIO && IRQ
+	default n
+	help
+	  Enable Xilinx-specific GPIO interrupt driver implementation.
+
+config SPI_XILINX
+	bool "Enable Xilinx SPI driver"
+	depends on SPI
+	default n
+	help
+	  Enable Xilinx-specific SPI driver implementation (XSpiPs / XSpi).
+
+config SPI_XILINX_PL
+	bool "Enable Xilinx PL (AXI) SPI driver"
+	depends on SPI
+	default n
+	help
+	  Enable the Xilinx programmable-logic (AXI_QUAD_SPI) SPI driver.
+
+config I2C_XILINX
+	bool "Enable Xilinx I2C driver"
+	depends on I2C
+	default n
+	help
+	  Enable Xilinx-specific I2C driver implementation (XIicPs / XIic).
+
+config AXI_IO_XILINX
+	bool "Enable Xilinx AXI IO helpers"
+	default n
+	help
+	  Enable the Xilinx AXI memory-mapped IO helpers used by the
+	  AXI core drivers.
+
+endif # XILINX

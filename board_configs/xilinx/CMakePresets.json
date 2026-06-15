@@ -1,0 +1,84 @@
+{
+	"version": 7,
+	"configurePresets": [
+		{
+			"name": "xilinx-base",
+			"hidden": true,
+			"description": "Base config for Xilinx (AMD) boards",
+			"generator": "Ninja",
+			"cacheVariables": {
+				"CMAKE_BUILD_TYPE": "Debug"
+			}
+		},
+		{
+			"name": "ad9081_zcu102",
+			"description": "AD9081 on Xilinx Zynq UltraScale+ MPSoC ZCU102 (Cortex-A53)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "ad9081_zcu102",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynqmp",
+				"BOARD_CONFIG_FILE": "ad9081_zcu102_defconfig",
+				"XILINX_ARCH": "cortexa53",
+				"XILINX_PROC": "psu_cortexa53_0",
+				"XPS_BOARD": "ZCU102"
+			}
+		},
+		{
+			"name": "ad9361_zcu102",
+			"description": "AD9361 on Xilinx Zynq UltraScale+ MPSoC ZCU102 (Cortex-A53)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "ad9361_zcu102",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynqmp",
+				"BOARD_CONFIG_FILE": "ad9361_zcu102_defconfig",
+				"XILINX_ARCH": "cortexa53",
+				"XILINX_PROC": "psu_cortexa53_0",
+				"XPS_BOARD": "ZCU102"
+			}
+		},
+		{
+			"name": "adrv9009_zc706",
+			"description": "ADRV9009 on Xilinx Zynq-7000 ZC706 (Cortex-A9)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "adrv9009_zc706",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynq",
+				"BOARD_CONFIG_FILE": "adrv9009_zc706_defconfig",
+				"XILINX_ARCH": "cortexa9",
+				"XILINX_PROC": "ps7_cortexa9_0",
+				"XPS_BOARD": "ZC706"
+			}
+		},
+		{
+			"name": "adrv9009_zcu102",
+			"description": "ADRV9009 on Xilinx Zynq UltraScale+ ZCU102 (Cortex-A53)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "adrv9009_zcu102",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynqmp",
+				"BOARD_CONFIG_FILE": "adrv9009_zcu102_defconfig",
+				"XILINX_ARCH": "cortexa53",
+				"XILINX_PROC": "psu_cortexa53_0",
+				"XPS_BOARD": "ZCU102"
+			}
+		},
+		{
+			"name": "adrv9009_zc706_iiod",
+			"description": "ADRV9009 on ZC706 with IIOD (TINYIIOD over UART)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "adrv9009_zc706",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynq",
+				"BOARD_CONFIG_FILE": "adrv9009_zc706_iiod_defconfig",
+				"XILINX_ARCH": "cortexa9",
+				"XILINX_PROC": "ps7_cortexa9_0",
+				"XPS_BOARD": "ZC706"
+			}
+		}
+	]
+}
