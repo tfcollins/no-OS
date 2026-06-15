@@ -34,8 +34,23 @@ no_os_sources_ifdef(CONFIG_RF_TRANSCEIVER_ADRV9002
     ${CMAKE_CURRENT_SOURCE_DIR}/navassa/adrv9002_conv.c)
 target_include_directories(no-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/navassa)
 
-# talise (adrv9009)
+# talise (adrv9009): no-OS wrapper + the vendor Talise API library
 no_os_sources_ifdef(CONFIG_RF_TRANSCEIVER_ADRV9009
     ${CMAKE_CURRENT_SOURCE_DIR}/talise/adrv9009.c
-    ${CMAKE_CURRENT_SOURCE_DIR}/talise/adrv9009_conv.c)
-target_include_directories(no-os PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/talise)
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/adrv9009_conv.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_agc.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_arm.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_cals.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_error.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_gpio.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_hal.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_jesd204.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_radioctrl.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_rx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_tx.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api/talise_user.c)
+target_include_directories(no-os PUBLIC
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/api
+    ${CMAKE_CURRENT_SOURCE_DIR}/talise/firmware)
