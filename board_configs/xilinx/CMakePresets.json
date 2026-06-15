@@ -79,6 +79,34 @@
 				"XILINX_PROC": "ps7_cortexa9_0",
 				"XPS_BOARD": "ZC706"
 			}
+		},
+		{
+			"name": "adrv9009zu11eg",
+			"description": "ADRV9009-ZU11EG (dual Talise A/B) on ADRV2CRR-FMC carrier (Cortex-A53)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "adrv9009zu11eg",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynqmp",
+				"BOARD_CONFIG_FILE": "adrv9009zu11eg_defconfig",
+				"XILINX_ARCH": "cortexa53",
+				"XILINX_PROC": "psu_cortexa53_0",
+				"XPS_BOARD": "ZU11EG"
+			}
+		},
+		{
+			"name": "adrv9009zu11eg_iiod",
+			"description": "ADRV9009-ZU11EG (dual Talise) with IIOD (TINYIIOD over UART)",
+			"inherits": "xilinx-base",
+			"cacheVariables": {
+				"BOARD": "adrv9009zu11eg",
+				"PLATFORM": "xilinx",
+				"TARGET": "zynqmp",
+				"BOARD_CONFIG_FILE": "adrv9009zu11eg_iiod_defconfig",
+				"XILINX_ARCH": "cortexa53",
+				"XILINX_PROC": "psu_cortexa53_0",
+				"XPS_BOARD": "ZU11EG"
+			}
 		}
 	]
 }

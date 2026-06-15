@@ -1,5 +1,13 @@
 add_executable(adrv9009)
 
+# Dual-Talise carriers (ZU11EG SOM, FMCOMMS8 on ZCU102) are selected by a bare
+# board macro that parameters.h / adrv9009.h / app_clocking.c key on (TALISE_B,
+# the carrier clock, the B-side GPIOs). config_xilinx_sdk() also emits
+# -DXPS_BOARD_<XPS_BOARD>, but the dual-Talise code wants the unprefixed name.
+if(XPS_BOARD STREQUAL "ZU11EG" OR XPS_BOARD STREQUAL "FMCOMMS8_ZCU102")
+	target_compile_definitions(no-os PUBLIC ${XPS_BOARD})
+endif()
+
 # Talise profile directory (selected via Kconfig)
 if(CONFIG_ADRV9009_PROFILE_BW200)
 	set(ADRV9009_PROFILE tx_bw200_ir245p76_rx_bw200_or245p76_orx_bw200_or245p76_dc245p76)
