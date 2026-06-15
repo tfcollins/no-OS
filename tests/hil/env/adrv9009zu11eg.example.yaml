@@ -15,8 +15,10 @@ targets:
         name: tron                     # coordinator place -> tron/tlab/*
       XilinxDeviceJTAG:
         jtag_cable_id: ""              # "" = first cable on tron's hw_server
-        host: REPLACE_ME-tron-address  # -> XSCT_REMOTE_HOST (tron's hw_server)
+        host: tron.local              # -> XSCT_REMOTE_HOST (tron, 10.0.0.232)
         port: 3121                     # -> XSCT_REMOTE_PORT (xilinx hw_server default)
+        # NOTE: JTAG load needs a Xilinx hw_server running on tron; tron has no
+        # Vitis/Vivado installed yet, so this path is not yet functional.
       XilinxVivadoTool:
         xsdb_path: /tools/Xilinx/2025.1/Vitis/bin/xsct
     drivers:
