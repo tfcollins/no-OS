@@ -1,0 +1,8 @@
+# Phase 1 (boot/console) HIL dependencies. Install into a venv:
+#   python3 -m venv .hilvenv && ./.hilvenv/bin/pip install -r tests/hil/requirements-hil.txt
+pytest>=7
+pytest-html>=4
+pyserial
+labgrid
+# ADI labgrid drivers/resources/strategies + iio_hardware/iio_carrier markers.
+adi-labgrid-plugins @ git+https://github.com/tfcollins/labgrid-plugins.git

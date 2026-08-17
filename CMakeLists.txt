@@ -337,6 +337,11 @@ add_subdirectory(iio)
 add_subdirectory(jesd204)
 add_subdirectory(drivers)
 
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/tests/hil/CMakeLists.txt")
+    add_subdirectory(tests/hil)
+endif()
+
+
 add_custom_target(KconfigVars ALL
     DEPENDS ${KCONFIG_VARS_FILE} ${CONFIG_HEADER_FILE}
 )

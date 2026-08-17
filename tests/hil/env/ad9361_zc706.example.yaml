@@ -1,0 +1,32 @@
+# Example labgrid env: AD9361 on ZC706, board-farm / coordinator.
+# Copy to ad9361_zc706.yaml, fill the REPLACE_ME values, then:
+#   pytest tests/hil/tests --lg-env tests/hil/env/ad9361_zc706.yaml \
+#     -m iio_hardware --noos-project ad9361 --noos-build demo \
+#     --noos-xsa /path/ad9361_zc706.xsa
+targets:
+  main:
+    resources:
+      RemotePlace:
+        name: ad9361-zc706-bench
+      NetworkSerialPort:
+        host: REPLACE_ME-exporter-host
+        port: 4001
+      XilinxDeviceJTAG:
+        jtag_cable_id: ""              # "" = first cable
+        host: REPLACE_ME-hwserver-host # -> XSCT_REMOTE_HOST (omit for local JTAG)
+        port: 3121                     # -> XSCT_REMOTE_PORT (xilinx hw_server default)
+      XilinxVivadoTool:
+        xsdb_path: /opt/Xilinx/2025.1/Vitis/bin/xsct
+      VesyncOutlet:
+        outlet_names: "ad9361-zc706"
+        username: "REPLACE_ME@example.com"
+        password: "REPLACE_ME"
+    drivers:
+      SerialDriver: {}                 # ConsoleProtocol for Phase-1 expect()
+      VesyncPowerDriver: {}            # PowerProtocol (off/on/cycle)
+    options:
+      coordinator_address: "REPLACE_ME-coordinator-host:20408"
+
+# Load the ADI plugin drivers/resources/strategies + the iio_* pytest markers:
+imports:
+  - adi_lg_plugins
